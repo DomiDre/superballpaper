@@ -1,6 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { FittingService } from '@shared/services/fitting.service';
 import { models } from './models';
+import { LogXLogYGraphComponent } from '@shared/components/logxlogygraph/logxlogygraph.component';
+import initial_data from '../assets/initial_plot';
 
 @Component({
   selector: 'app-root',
@@ -8,15 +10,24 @@ import { models } from './models';
   styleUrls: ['./app.component.sass']
 })
 export class AppComponent {
-
+  
+  @ViewChild('xygraph') plotElement!: LogXLogYGraphComponent;
+  
   constructor(
     public fittingService: FittingService) { }
 
     ngOnInit() {
       // on creation of component init linspace formgroup with default values
-      this.fittingService.initLinspaceGroups(0.01, 0.5, 100);
-  
+      this.fittingService.x = initial_data.x;
+      this.fittingService.y = initial_data.y;
+      this.fittingService.yData = initial_data.y;
+      this.fittingService.syData = initial_data.sy;
+      
       // set models in fittingService to the module function models
       this.fittingService.models = models;
+    }
+
+    ngAfterViewInit() {
+      this.plotElement.updateChart();
     }
 }

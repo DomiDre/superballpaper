@@ -50,8 +50,15 @@
     </div>
     <div>
       <h2>Online-Demo</h2>
-      <app-logxlogy-graph #xygraph [x]="fittingService.x" [y]="fittingService.y"
-      [yData]="fittingService.yData" [syData]="fittingService.syData"></app-logxlogy-graph>
+      <app-logxlogy-graph #xygraph
+      [x]="fittingService.x"
+      [y]="fittingService.y"
+      [yData]="fittingService.yData"
+      [syData]="fittingService.syData"
+      xlabel='q / A-1'
+      ylabel="I / cm-1">
+      </app-logxlogy-graph>
+
     </div>
     <div>
       <h2>Implementation</h2>
