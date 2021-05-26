@@ -6,11 +6,11 @@
     <mat-card-subtitle>
       Dominique Dresen,<sup>1</sup>
       Asmaa Qdemat,<sup>1</sup>
-      Dominika Zákutná,<sup>1,∗</sup>
-      Erik Wetterskog,<sup>2</sup>
+      Dominika Zákutná,<sup>1†</sup>
+      Erik Wetterskog,<sup>2‡</sup>
       Emmanuel Kentzinger,<sup>3</sup>
-      German Salazar-Alvarez,<sup>4</sup>
-      and Sabrina Disch <sup>1,†</sup>
+      German Salazar-Alvarez,<sup>2</sup>
+      and Sabrina Disch <sup>1,*</sup>
     </mat-card-subtitle>
     <mat-card-subtitle>
       <span>
@@ -19,19 +19,19 @@
       </span>
     </mat-card-subtitle>
     <mat-card-subtitle>
-      <span><sup>2</sup> Stockholm University, Stockholm, Sweden</span>
+      <span><sup>2</sup> Department of Materials Science and Engineering, Ångström Laboratory, Uppsala University, Box 35, 751 03 Uppsala, Sweden</span>
     </mat-card-subtitle>
     <mat-card-subtitle>
       <span><sup>3</sup> Jülich Centre for Neutron Science JCNS, Peter Grünberg Institut PGI, JARA-FIT, Forschungszentrum Jülich GmbH, D-52425 Jülich, Germany</span>
     </mat-card-subtitle>
     <mat-card-subtitle>
-      <span><sup>4</sup> Uppsala University, Uppsala, Sweden</span>
+      <span><sup>†</sup> Current address: Charles University, Prague, Czech Republic</span>
     </mat-card-subtitle>
     <mat-card-subtitle>
-      <span><sup>∗</sup></span>
+      <span><sup>‡</sup> Current address: Vetenskapens Hus, Roslagstullsbacken 29, 114 21 Stockholm, Sweden</span>
     </mat-card-subtitle>
     <mat-card-subtitle>
-      <span><sup>†</sup>corresponding author:</span>
+      <span><sup>*</sup>corresponding author: sabrina.disch@uni-koeln.de</span>
     </mat-card-subtitle>
   </mat-card-header>
   <mat-card-content>
@@ -40,12 +40,12 @@
     </div>
     <div class='container-abstract'>
       <h2>Abstract</h2>
-      Accurate  characterization  of  the  nanocrystal  shape  with  high  statistical  relevance  is  essential for exploiting the 
-      strongly shape-dependent properties of cuboidal nanoparticles towards applications.  This work presents the development of a 
-      new small-angle scattering form factor based on the superball geometry.  The superball quantifies the characteristic rounding of 
-      corners and edges of cuboidal nanoparticles with a single parameter.  Applied to small-angle scattering data of sufficiently 
-      monodisperse nanoparticles, the superball form factor enables differentiation between the effects of extended particle size 
-      distribution and irregular particle shape.  The quantitative application of the superball form factor is validated against 
+      Accurate  characterization  of  the  nanocrystal  shape  with  high  statistical  relevance  is  essential for exploiting the
+      strongly shape-dependent properties of cuboidal nanoparticles towards applications.  This work presents the development of a
+      new small-angle scattering form factor based on the superball geometry.  The superball quantifies the characteristic rounding of
+      corners and edges of cuboidal nanoparticles with a single parameter.  Applied to small-angle scattering data of sufficiently
+      monodisperse nanoparticles, the superball form factor enables differentiation between the effects of extended particle size
+      distribution and irregular particle shape.  The quantitative application of the superball form factor is validated against
       microscopy data for a series of monodisperse nanoparticles and implemented into the user-friendly, open source software Sasview.
     </div>
     <div>
@@ -58,7 +58,14 @@
       xlabel='q / A-1'
       ylabel="I / cm-1">
       </app-logxlogy-graph>
-
+      <div class='container-parameters' *ngIf="fittingService.selectedModel
+				&& fittingService.selectedModel.infoText">
+        <form class='form-parameters' [formGroup]="fittingService.parameterForm">
+          <mat-form-field *ngFor="let param of fittingService.selectedModel.parameters">
+            <input matInput type="number" [placeholder]="param.name" [formControlName]="param.name">
+          </mat-form-field>
+        </form>
+      </div>
     </div>
     <div>
       <h2>Implementation</h2>

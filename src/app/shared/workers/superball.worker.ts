@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
 addEventListener('message', ({ data }) => {
-  import('rusfun')
+  import('superball')
   .then(module => {
     if (data.task === 'fit') {
       const fitResult = module.fit(
@@ -26,10 +26,16 @@ addEventListener('message', ({ data }) => {
         }
       });
     } else if (data.task === 'model') {
-      const result = module.model(
+      console.log(data.modelName);
+      console.log(data.p);
+      console.log(data.x);
+
+      console.log("Worker: calling model fn")
+      const result = module.superball_model(
         data.modelName,
         data.p,
         data.x);
+      console.log("Result:", result);
       postMessage({
         task: 'model',
         result

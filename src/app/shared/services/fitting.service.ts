@@ -48,38 +48,23 @@ export class FittingService {
     private formBuilder: FormBuilder,
     private dataLoader: XydataLoaderService,
     private http: HttpClient) {
-      if (typeof Worker !== 'undefined') {
-        // initialize a worker from adder.worker.ts
-        this.fitWorker = new Worker('../workers/rusfun.worker', { type: 'module' });
+    if (typeof Worker !== 'undefined') {
+      // initialize a worker from adder.worker.ts
+      this.fitWorker = new Worker(
+          new URL('src/app/shared/workers/superball.worker', import.meta.url),
+          { type: "module" });
 
-        // define behaviour when worker finishes his task
-        this.fitWorker.onmessage = ({ data }) => {
-          if (data.task === 'fit') {
-            // this.eval_fit_result(data.result);
-          } else if (data.task === 'model') {
-            this.eval_model_calc(data.result);
-          }
-        };
-      } else {
-        console.log('Web Workers are not supported in this environment');
-      }
+      // define behaviour when worker finishes his task
+      this.fitWorker.onmessage = ({ data }) => {
+        if (data.task === 'fit') {
+          // this.eval_fit_result(data.result);
+        } else if (data.task === 'model') {
+          this.eval_model_calc(data.result);
+        }
+      };
+    } else {
+      console.log('Web Workers are not supported in this environment');
     }
-
-  initLinspaceGroups(xmin: number, xmax: number, Nx: number) {
-    // at startup initialize the linspace
-    this.linspaceForm = this.formBuilder.group({
-      xMin: [xmin, [Validators.required]],
-      xMax: [xmax, Validators.required],
-      Nx: [Nx, Validators.required]
-    }, { updateOn: 'blur' });
-
-    // on user input, and if a model is selected, recalculate the model
-    this.linspaceForm.valueChanges
-    .subscribe(val => {
-      if (this.selectedModel && this.linspaceForm.valid) {
-        this.setFunction();
-      }
-    });
   }
 
   setModels(models: FuncModel[]) {
@@ -116,50 +101,50 @@ export class FittingService {
   //   }
   // }
 
-  // modelSelected() {
-  //   // when the user selects a model, initalize the FormGroup for the parameters
-  //   const paramGroup = {};
-  //   const checkboxGroup = {};
-  //   for (const param of this.selectedModel.parameters) {
-  //     paramGroup[param.name] = [
-  //       param.value,
-  //       [
-  //         Validators.required,
-  //         Validators.min(param.min),
-  //         Validators.max(param.max),
-  //       ]
-  //     ];
-  //     checkboxGroup[param.name] = [
-  //       {value: param.vary, disabled: !param.vary},
-  //       Validators.required];
-  //     this.fittableParameters[param.name] = param.vary;
-  //   }
-  //   paramGroup[this.checkboxKey] = this.formBuilder.group(checkboxGroup);
-  //   this.parameterForm = this.formBuilder.group(
-  //     paramGroup,
-  //     // { updateOn: 'blur' }
-  //   );
+  modelSelected() {
+    // when the user selects a model, initalize the FormGroup for the parameters
+    const paramGroup: { [key: string]: any }  = {};
+    const checkboxGroup: { [key: string]: any } = {};
+    for (const param of this.selectedModel.parameters) {
+      paramGroup[param.name] = [
+        param.value,
+        [
+          Validators.required,
+          Validators.min(param.min),
+          Validators.max(param.max),
+        ]
+      ];
+      checkboxGroup[param.name] = [
+        {value: param.vary, disabled: !param.vary},
+        Validators.required];
+      this.fittableParameters[param.name] = param.vary;
+    }
+    paramGroup[this.checkboxKey] = this.formBuilder.group(checkboxGroup);
+    this.parameterForm = this.formBuilder.group(
+      paramGroup,
+      // { updateOn: 'blur' }
+    );
 
-  //   // when parameters are changed by the user
-  //   // update internal parameters and update the plot
-  //   this.parameterForm.valueChanges
-  //   .subscribe(val => {
-  //     if (this.selectedModel && this.parameterForm.valid) {
-  //       for (const param of this.selectedModel.parameters) {
-  //         param.value = val[param.name];
-  //         param.vary = val.checkboxes[param.name];
-  //       }
-  //       this.setFunction();
-  //     }
-  //   });
+    // when parameters are changed by the user
+    // update internal parameters and update the plot
+    this.parameterForm.valueChanges
+    .subscribe(val => {
+      if (this.selectedModel && this.parameterForm.valid) {
+        for (const param of this.selectedModel.parameters) {
+          param.value = val[param.name];
+          param.vary = val.checkboxes[param.name];
+        }
+        this.setFunction();
+      }
+    });
 
-  //   // calculate the model once after selection
-  //   this.setFunction();
-  // }
+    // calculate the model once after selection
+    this.setFunction();
+  }
 
   setFunction() {
     // calls function from wasm and sets result in y
-    this.calculate_linspace();
+    // this.calculate_linspace();
     const p = new Float64Array(this.selectedModel.parameters.length);
     for (const idx in this.selectedModel.parameters) {
       if (this.selectedModel.parameters[idx]) {
@@ -172,22 +157,15 @@ export class FittingService {
     this.calc_model(this.selectedModel.name, p, x);
   }
 
-  calculate_linspace() {
+  linspace(xMin: number, xMax: number, N: number) {
     // calculate the linspace for given xMin, xMax and number of steps
-    // only calculated if no data is selected
-    if (this.yData.length === 0) {
-      const x = [];
-      const xMin = Number(this.linspaceForm.controls.xMin.value);
-      const xMax = Number(this.linspaceForm.controls.xMax.value);
-      const N = Number(this.linspaceForm.controls.Nx.value);
-      const step = (xMax - xMin) / (N - 1);
-      for (let i = 0; i < N; i++) {
-        x.push(xMin + i * step);
-      }
-      this.x = new Float64Array(x);
+    const x = [];
+    const step = (xMax - xMin) / (N - 1);
+    for (let i = 0; i < N; i++) {
+      x.push(xMin + i * step);
     }
+    this.x = new Float64Array(x);
   }
-
 
   load_example_data() {
     this.http.get('assets/gaussianData.xye', {responseType: 'text'})

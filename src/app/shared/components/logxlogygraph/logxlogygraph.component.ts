@@ -7,7 +7,7 @@ import * as d3 from 'd3';
 @Component({
   selector: 'app-logxlogy-graph',
   templateUrl: './logxlogygraph.component.html',
-  styleUrls: ['./logxlogygraph.component.scss']
+  styleUrls: ['./logxlogygraph.component.sass']
 })
 export class LogXLogYGraphComponent implements OnChanges {
   @Input()
@@ -132,12 +132,15 @@ export class LogXLogYGraphComponent implements OnChanges {
     .range([this.chartProps.height, 0]);
 
     this.chartProps.line = d3.line<XYData>()
-      .x(d => this.chartProps.xscale(d.x))
-      .y(d => this.chartProps.yscale(d.y))
-      .curve(d3.curveMonotoneX);
+    .x(d => this.chartProps.xscale(d.x))
+    .y(d => this.chartProps.yscale(d.y))
+    .curve(d3.curveMonotoneX);
 
-    this.chartProps.xAxis = d3.axisBottom(this.chartProps.xscale).ticks(5);
-    this.chartProps.yAxis = d3.axisLeft(this.chartProps.yscale).ticks(5);
+    this.chartProps.xAxis = d3.axisBottom(this.chartProps.xscale)
+    .ticks(4, d3.format("") as any);
+
+    this.chartProps.yAxis = d3.axisLeft(this.chartProps.yscale)
+    .ticks(4, d3.format("") as any);
 
     this.figure.append('path')
     .datum(this.xymodel)
@@ -147,13 +150,14 @@ export class LogXLogYGraphComponent implements OnChanges {
     .attr('class', 'line');
 
     this.figure.append('g')
-    .attr('class', 'x axis')
+    .attr('class', 'xAxis')
     .attr('transform', `translate(0,${this.chartProps.height})`)
     .call(this.chartProps.xAxis);
 
     this.figure.append('g')
-    .attr('class', 'y axis')
+    .attr('class', 'yAxis')
     .call(this.chartProps.yAxis);
+
   }
 
   refreshChartSize() {
@@ -181,19 +185,37 @@ export class LogXLogYGraphComponent implements OnChanges {
 
     this.figure.transition();
 
-    this.figure.select('.x.axis') // update x axis
-    .call(this.chartProps.xAxis);
-
-    this.figure.select('.y.axis') // update y axis
-    .call(this.chartProps.yAxis);
-
+    //clear graph
     this.figure.selectAll('circle') // remove old dots
     .remove();
-
     this.figure.selectAll('line') // remove old lines
     .remove();
     this.figure.selectAll('path') // update the line
     .remove();
+
+    this.figure.select('.xAxis') // update x axis
+    .attr('class', 'xAxis')
+    .call(this.chartProps.xAxis);
+
+    this.figure.select('.yAxis') // update y axis
+    .attr('class', 'yAxis')
+    .call(this.chartProps.yAxis);
+
+    d3.selectAll("g.yAxis g.tick")
+    .append("line")
+    .attr("stroke", "lightgrey")
+    .attr("x1", 0)
+    .attr("y1", 0)
+    .attr("x2", this.chartProps.width)
+    .attr("y2", 0);
+
+    d3.selectAll("g.xAxis g.tick")
+    .append("line")
+    .attr("stroke", "lightgrey")
+    .attr("x1", 0)
+    .attr("y1", 0)
+    .attr("x2", 0)
+    .attr("y2", -this.chartProps.height);
 
     this.figure.selectAll('.dot') // add new dots
     .data(this.xydata)
