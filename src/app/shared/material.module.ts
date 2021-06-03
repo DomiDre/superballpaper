@@ -6,6 +6,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatSelectModule } from '@angular/material/select';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatInputModule } from '@angular/material/input';
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -34,6 +35,7 @@ import { MatGridListModule } from '@angular/material/grid-list';
     MatSelectModule,
     MatTabsModule,
     MatInputModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
     MatChipsModule,
     MatSidenavModule,
@@ -58,6 +60,7 @@ import { MatGridListModule } from '@angular/material/grid-list';
     MatSelectModule,
     MatTabsModule,
     MatInputModule,
+    MatProgressBarModule,
     MatProgressSpinnerModule,
     MatChipsModule,
     MatSidenavModule,

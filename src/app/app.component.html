@@ -49,6 +49,11 @@
       microscopy data for a series of monodisperse nanoparticles and implemented into the user-friendly, open source software Sasview.
     </div>
     <div>
+      <a href='https://chemrxiv.org/articles/preprint/Neither_Sphere_nor_Cube_-_Analyzing_the_Particle_Shape_Using_Small-Angle_Scattering_and_the_Superball_Model/14632572/1' target='_blank' rel="noopener">
+        <b>Article is open access on ChemRxiv</b>
+      </a>
+    </div>
+    <div>
       <h2>Online-Demo</h2>
       <app-logxlogy-graph #xygraph
       [x]="fittingService.x"
@@ -58,21 +63,57 @@
       xlabel='q / A-1'
       ylabel="I / cm-1">
       </app-logxlogy-graph>
+      <mat-progress-bar
+        *ngIf="fittingService.isCalculating"
+        mode="indeterminate"
+        color="primary"
+        style="z-index: 5000;"
+      >
+      </mat-progress-bar>
       <div class='container-parameters' *ngIf="fittingService.selectedModel
-				&& fittingService.selectedModel.infoText">
+      && fittingService.selectedModel.infoText">
+        <b>Superball Parameters</b>
         <form class='form-parameters' [formGroup]="fittingService.parameterForm">
           <mat-form-field *ngFor="let param of fittingService.selectedModel.parameters">
-            <input matInput type="number" [placeholder]="param.name" [formControlName]="param.name">
+            <input matInput type="number" placeholder="{{param.unitName != '' ? (param.name + ' / ' + param.unitName) : param.name}}" [formControlName]="param.name">
           </mat-form-field>
         </form>
       </div>
     </div>
     <div>
       <h2>Implementation</h2>
-      Link to SasView
+      <div>
+        The Superball is available in the software package SasView as formfactor.
+        <a href='https://www.sasview.org/' target='_blank' rel="noopener"><b>Get SasView at https://www.sasview.org.</b></a>
+      </div>
+    </div>
+    <div>
+      <h2>Sources</h2>
+      <div>
+        <sup>a</sup>This webpage was created using
+        <a href='https://angular.io/' target='_blank' rel="noopener">
+        Angular 12.0</a>,
+        using
+        <a href='https://d3js.org/' target='_blank' rel="noopener">
+          d3.js</a> for plotting.
+      </div>
+
+      <div>
+        <sup>b</sup>The online demo is implemented as Rust module, which was compiled to WASM to enable fast client-sided calculations in the browser.
+
+      </div>
+
+      <div>
+        <a href='https://github.com/DomiDre/superballpaper' target='_blank' rel="noopener">
+          <sup>a</sup> <img class='social-media-button clickable' src='assets/brand_resources/github.svg'/>
+        </a>
+        <a href='https://github.com/DomiDre/superball' target='_blank' rel="noopener">
+          <sup>b</sup> <img class='social-media-button clickable' src='assets/brand_resources/github.svg'/>
+        </a>
+        <a href='https://twitter.com/DomiDre' target='_blank' rel="noopener">
+          <img class='social-media-button clickable' src='assets/brand_resources/Twitter_Logo_Blue.svg'/>
+        </a>
+      </div>
     </div>
   </mat-card-content>
-  <mat-card-actions>
-    <app-footer></app-footer>
-  </mat-card-actions>
 </mat-card>

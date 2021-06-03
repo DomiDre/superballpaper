@@ -18,8 +18,7 @@ export class AppComponent {
 
     ngOnInit() {
       // on creation of component init linspace formgroup with default values
-      // this.fittingService.x = initial_data.x;
-      // this.fittingService.y = initial_data.y;
+
       // this.fittingService.yData = initial_data.y;
       // this.fittingService.syData = initial_data.sy;
       // set models in fittingService to the module function models
@@ -27,6 +26,9 @@ export class AppComponent {
       this.fittingService.models = models;
       this.fittingService.selectedModel = models.find(x => x.name == 'superball') ?? models[0];
       this.fittingService.modelSelected();
+      // set initial data without calculation
+      this.fittingService.x = initial_data.x;
+      this.fittingService.y = initial_data.y;
     }
 
     ngAfterViewInit() {

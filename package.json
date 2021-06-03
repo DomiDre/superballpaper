@@ -23,7 +23,7 @@
     "@types/d3": "^6.3.0",
     "d3": "^6.7.0",
     "rxjs": "~6.6.0",
-    "superball": "^0.1.0",
+    "superball": "file:local_npm/superball",
     "tslib": "^2.1.0",
     "zone.js": "~0.11.4"
   },

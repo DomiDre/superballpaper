@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { XydataLoaderService } from '@shared/services/xydata-loader.service';
@@ -44,6 +44,8 @@ export class FittingService {
   fitRunning = false;
   fitT0!: number;
 
+  isCalculating: boolean = false;
+
   constructor(
     private formBuilder: FormBuilder,
     private dataLoader: XydataLoaderService,
@@ -60,6 +62,7 @@ export class FittingService {
           // this.eval_fit_result(data.result);
         } else if (data.task === 'model') {
           this.eval_model_calc(data.result);
+          this.isCalculating = false;
         }
       };
     } else {
@@ -71,38 +74,23 @@ export class FittingService {
     this.models = models;
   }
 
-  // loadXYData(xyFileInput) {
-  //   // loading 2 or 3 column files
-  //   const fileList: FileList = xyFileInput.target.files;
-  //   if ( fileList.length > 0 ) {
-  //     this.selectedXYFile = xyFileInput.target.files[0];
-  //     this.dataLoader.readFile(this.selectedXYFile)
-  //     .then(fileContent => {
-  //       if (fileContent && fileContent.x && fileContent.x.length > 0) {
-  //         this.linspaceForm.disable();
-  //         this.x = fileContent.x;
-  //         this.yData = fileContent.y;
-  //         this.syData = fileContent.sy;
+  calc_model(modelName: string, p: Float64Array, x: Float64Array) {
+    this.isCalculating = true;
+    this.fitWorker.postMessage({
+      task: 'model',
+      modelName,
+      p,
+      x,
+    });
+  }
 
-  //         // sort arrays according to x
-  //         const zip = [];
-  //         for (let i = 0; i < this.x.length; i++) {
-  //           zip.push([this.x[i], this.yData[i], this.syData[i]]);
-  //         }
-  //         zip.sort((a, b) => a[0] - b[0]);
-  //         for (let i = 0; i < zip.length; i++) {
-  //           this.x[i] = zip[i][0];
-  //           this.yData[i] = zip[i][1];
-  //           this.syData[i] = zip[i][2];
-  //         }
-  //         if (this.selectedModel) { this.setFunction(); }
-  //       }
-  //     });
-  //   }
-  // }
+  eval_model_calc(result: Float64Array) {
+    this.y = result;
+  }
 
   modelSelected() {
     // when the user selects a model, initalize the FormGroup for the parameters
+    // This function does not initiate a first calculation! Call setFunction() for this
     const paramGroup: { [key: string]: any }  = {};
     const checkboxGroup: { [key: string]: any } = {};
     for (const param of this.selectedModel.parameters) {
@@ -122,14 +110,14 @@ export class FittingService {
     paramGroup[this.checkboxKey] = this.formBuilder.group(checkboxGroup);
     this.parameterForm = this.formBuilder.group(
       paramGroup,
-      // { updateOn: 'blur' }
+      { updateOn: 'change' }
     );
 
     // when parameters are changed by the user
     // update internal parameters and update the plot
     this.parameterForm.valueChanges
     .subscribe(val => {
-      if (this.selectedModel && this.parameterForm.valid) {
+      if (this.selectedModel && this.parameterForm.valid && !this.isCalculating) {
         for (const param of this.selectedModel.parameters) {
           param.value = val[param.name];
           param.vary = val.checkboxes[param.name];
@@ -139,7 +127,7 @@ export class FittingService {
     });
 
     // calculate the model once after selection
-    this.setFunction();
+    // this.setFunction();
   }
 
   setFunction() {
@@ -181,88 +169,88 @@ export class FittingService {
     });
   }
 
-  run_fit() {
-    // initialize parameter array
-    const pInit: Float64Array = new Float64Array(this.selectedModel.parameters.length);
-    const varyP: Uint8Array = new Uint8Array(this.selectedModel.parameters.length);
-    for (const i in this.selectedModel.parameters) {
-      if (this.selectedModel.parameters[i]) {
-        const param = this.selectedModel.parameters[i];
-        pInit[i] = param.value * param.unitValue;
-        varyP[i] = +param.vary;
-      }
-    }
+  // run_fit() {
+  //   // initialize parameter array
+  //   const pInit: Float64Array = new Float64Array(this.selectedModel.parameters.length);
+  //   const varyP: Uint8Array = new Uint8Array(this.selectedModel.parameters.length);
+  //   for (const i in this.selectedModel.parameters) {
+  //     if (this.selectedModel.parameters[i]) {
+  //       const param = this.selectedModel.parameters[i];
+  //       pInit[i] = param.value * param.unitValue;
+  //       varyP[i] = +param.vary;
+  //     }
+  //   }
 
-    let syData: Float64Array;
-    if (this.syData.length === 0) {
-      syData = new Float64Array(this.x.length);
-      syData.fill(1);
-    } else {
-      syData = this.syData;
-    }
-    // run fit
+  //   let syData: Float64Array;
+  //   if (this.syData.length === 0) {
+  //     syData = new Float64Array(this.x.length);
+  //     syData.fill(1);
+  //   } else {
+  //     syData = this.syData;
+  //   }
+  //   // run fit
 
-    // start fit
-    this.fitWorker.postMessage({
-      task: 'fit',
-      modelName: this.selectedModel.name,
-      p: pInit,
-      x: this.x,
-      y: this.yData,
-      sy: syData,
-      varyP
-    });
-    this.fitRunning = true;
-    this.fitT0 = window.performance.now();
-  }
+  //   // start fit
+  //   this.fitWorker.postMessage({
+  //     task: 'fit',
+  //     modelName: this.selectedModel.name,
+  //     p: pInit,
+  //     x: this.x,
+  //     y: this.yData,
+  //     sy: syData,
+  //     varyP
+  //   });
+  //   this.fitRunning = true;
+  //   this.fitT0 = window.performance.now();
+  // }
 
-  /**
-   * Called once a fit from the worker is finished
-   */
-  eval_fit_result(fitResult: FitResult) {
-    const copyOfPInit = JSON.parse(JSON.stringify(this.selectedModel.parameters));
-    const pResult: Parameter[] = [];
-    for (const idx in fitResult.params) {
-      if (fitResult.params[idx]) {
-        const param = this.selectedModel.parameters[idx];
-        param.value = fitResult.params[idx] / param.unitValue;
-        param.std = fitResult.errors[idx] / param.unitValue;
-        pResult.push(param);
-      }
-    }
-    this.fitStatistics = {
-      chi2: fitResult.chi2,
-      redchi2: fitResult.redchi2,
-      R2: fitResult.R2,
-      pResult,
-      pInit: copyOfPInit,
-      fittedModel: fitResult.fitted_model,
-      numFuncEvaluations: fitResult.numFuncEvaluations,
-      executionTime: window.performance.now() - this.fitT0,
-      convergenceMessage: fitResult.convergenceMessage
-    };
+  // /**
+  //  * Called once a fit from the worker is finished
+  //  */
+  // eval_fit_result(fitResult: FitResult) {
+  //   const copyOfPInit = JSON.parse(JSON.stringify(this.selectedModel.parameters));
+  //   const pResult: Parameter[] = [];
+  //   for (const idx in fitResult.params) {
+  //     if (fitResult.params[idx]) {
+  //       const param = this.selectedModel.parameters[idx];
+  //       param.value = fitResult.params[idx] / param.unitValue;
+  //       param.std = fitResult.errors[idx] / param.unitValue;
+  //       pResult.push(param);
+  //     }
+  //   }
+  //   this.fitStatistics = {
+  //     chi2: fitResult.chi2,
+  //     redchi2: fitResult.redchi2,
+  //     R2: fitResult.R2,
+  //     pResult,
+  //     pInit: copyOfPInit,
+  //     fittedModel: fitResult.fitted_model,
+  //     numFuncEvaluations: fitResult.numFuncEvaluations,
+  //     executionTime: window.performance.now() - this.fitT0,
+  //     convergenceMessage: fitResult.convergenceMessage
+  //   };
 
 
-    // update parameter array and plot new model
-    const updatedVals: { [key: string]: number | {[key: string]: boolean} }  = {};
-    const checkboxGroup: { [key: string]: boolean } = {};
-    for (const i in this.selectedModel.parameters) {
-      if (this.selectedModel.parameters[i]) {
-        const param = this.selectedModel.parameters[i];
-        // const new_param_values = pResult[i];
-        // param.value = new_param_values.value;
-        // param.vary = new_param_values.vary;
-        updatedVals[param.name] = param.value;
-        if (this.fittableParameters[param.name]) {
-          checkboxGroup[param.name] = param.vary;
-        } else {
-          checkboxGroup[param.name] = false;
-        }
-      }
-    }
-    updatedVals[this.checkboxKey] = checkboxGroup;
-    this.parameterForm.setValue(updatedVals);
-  }
+  //   // update parameter array and plot new model
+  //   const updatedVals: { [key: string]: number | {[key: string]: boolean} }  = {};
+  //   const checkboxGroup: { [key: string]: boolean } = {};
+  //   for (const i in this.selectedModel.parameters) {
+  //     if (this.selectedModel.parameters[i]) {
+  //       const param = this.selectedModel.parameters[i];
+  //       // const new_param_values = pResult[i];
+  //       // param.value = new_param_values.value;
+  //       // param.vary = new_param_values.vary;
+  //       updatedVals[param.name] = param.value;
+  //       if (this.fittableParameters[param.name]) {
+  //         checkboxGroup[param.name] = param.vary;
+  //       } else {
+  //         checkboxGroup[param.name] = false;
+  //       }
+  //     }
+  //   }
+  //   updatedVals[this.checkboxKey] = checkboxGroup;
+  //   this.parameterForm.setValue(updatedVals);
+  // }
 
   /*
   * Generate text file with results that can be saved to disk
@@ -349,17 +337,36 @@ export class FittingService {
   //   element.dispatchEvent(event);
   // }
 
-  calc_model(modelName: string, p: Float64Array, x: Float64Array) {
-    this.fitWorker.postMessage({
-      task: 'model',
-      modelName,
-      p,
-      x,
-    });
-  }
+  // loadXYData(xyFileInput) {
+  //   // loading 2 or 3 column files
+  //   const fileList: FileList = xyFileInput.target.files;
+  //   if ( fileList.length > 0 ) {
+  //     this.selectedXYFile = xyFileInput.target.files[0];
+  //     this.dataLoader.readFile(this.selectedXYFile)
+  //     .then(fileContent => {
+  //       if (fileContent && fileContent.x && fileContent.x.length > 0) {
+  //         this.linspaceForm.disable();
+  //         this.x = fileContent.x;
+  //         this.yData = fileContent.y;
+  //         this.syData = fileContent.sy;
 
-  eval_model_calc(result: Float64Array) {
-    this.y = result;
-  }
+  //         // sort arrays according to x
+  //         const zip = [];
+  //         for (let i = 0; i < this.x.length; i++) {
+  //           zip.push([this.x[i], this.yData[i], this.syData[i]]);
+  //         }
+  //         zip.sort((a, b) => a[0] - b[0]);
+  //         for (let i = 0; i < zip.length; i++) {
+  //           this.x[i] = zip[i][0];
+  //           this.yData[i] = zip[i][1];
+  //           this.syData[i] = zip[i][2];
+  //         }
+  //         if (this.selectedModel) { this.setFunction(); }
+  //       }
+  //     });
+  //   }
+  // }
+
+
 
 }
