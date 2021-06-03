@@ -1,0 +1,21 @@
+{
+  "name": "superball",
+  "collaborators": [
+    "Dominique <dominiquedresen@gmail.com>"
+  ],
+  "description": "Small crate to implement superball code in Rust and for compilation to WASM",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/domidre/superball"
+  },
+  "files": [
+    "superball_bg.wasm",
+    "superball.js",
+    "superball.d.ts"
+  ],
+  "module": "superball.js",
+  "types": "superball.d.ts",
+  "sideEffects": false
+}
