@@ -52,22 +52,27 @@ export class FittingService {
     private http: HttpClient) {
     if (typeof Worker !== 'undefined') {
       // initialize a worker from adder.worker.ts
-      this.fitWorker = new Worker(
-          new URL('src/app/shared/workers/superball.worker', import.meta.url),
-          { type: "module" });
-
-      // define behaviour when worker finishes his task
-      this.fitWorker.onmessage = ({ data }) => {
-        if (data.task === 'fit') {
-          // this.eval_fit_result(data.result);
-        } else if (data.task === 'model') {
-          this.eval_model_calc(data.result);
-          this.isCalculating = false;
-        }
-      };
+      this.initWorker();
+      this.fitWorker.terminate();
     } else {
       console.log('Web Workers are not supported in this environment');
     }
+  }
+
+  initWorker() {
+    this.fitWorker = new Worker(
+      new URL('src/app/shared/workers/superball.worker', import.meta.url),
+      { type: "module" });
+
+    // define behaviour when worker finishes his task
+    this.fitWorker.onmessage = ({ data }) => {
+      if (data.task === 'fit') {
+        // this.eval_fit_result(data.result);
+      } else if (data.task === 'model') {
+        this.eval_model_calc(data.result);
+        this.isCalculating = false;
+      }
+    };
   }
 
   setModels(models: FuncModel[]) {
@@ -109,15 +114,19 @@ export class FittingService {
     }
     paramGroup[this.checkboxKey] = this.formBuilder.group(checkboxGroup);
     this.parameterForm = this.formBuilder.group(
-      paramGroup,
-      { updateOn: 'change' }
+      paramGroup
     );
 
     // when parameters are changed by the user
     // update internal parameters and update the plot
     this.parameterForm.valueChanges
     .subscribe(val => {
-      if (this.selectedModel && this.parameterForm.valid && !this.isCalculating) {
+      if (this.isCalculating) {
+        // reset worker
+        this.fitWorker.terminate();
+        this.initWorker();
+      }
+      if (this.selectedModel && this.parameterForm.valid) {
         for (const param of this.selectedModel.parameters) {
           param.value = val[param.name];
           param.vary = val.checkboxes[param.name];
