@@ -53,7 +53,6 @@ export class FittingService {
     if (typeof Worker !== 'undefined') {
       // initialize a worker from adder.worker.ts
       this.initWorker();
-      this.fitWorker.terminate();
     } else {
       console.log('Web Workers are not supported in this environment');
     }
@@ -128,15 +127,16 @@ export class FittingService {
       }
       if (this.selectedModel && this.parameterForm.valid) {
         for (const param of this.selectedModel.parameters) {
-          param.value = val[param.name];
-          param.vary = val.checkboxes[param.name];
+          let newValue = this.parameterForm.value[param.name];
+          if( param.name.startsWith("Gauss") ){
+            newValue = Math.round(newValue);
+          }
+          param.value = newValue;
+          param.vary = this.parameterForm.value.checkboxes[param.name];
         }
         this.setFunction();
       }
     });
-
-    // calculate the model once after selection
-    // this.setFunction();
   }
 
   setFunction() {

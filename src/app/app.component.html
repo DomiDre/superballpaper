@@ -73,10 +73,29 @@
       <div class='container-parameters' *ngIf="fittingService.selectedModel
       && fittingService.selectedModel.infoText">
         <b>Superball Parameters</b>
-        <form class='form-parameters' [formGroup]="fittingService.parameterForm">
-          <mat-form-field *ngFor="let param of fittingService.selectedModel.parameters">
-            <input matInput type="number" placeholder="{{param.unitName != '' ? (param.name + ' / ' + param.unitName) : param.name}}" [formControlName]="param.name">
-          </mat-form-field>
+        <form class='form-parameters' [formGroup]="fittingService.parameterForm"
+        floatLabel="always" appearance="none">
+          <mat-grid-list [cols]="numGridCols" rowHeight="100px">
+            <mat-grid-tile *ngFor="let param of fittingService.selectedModel.parameters">
+              <mat-form-field class='form-parameters-field'>
+                <mat-label>{{param.unitName != '' ? (param.name + ' / ' + param.unitName) : param.name}}</mat-label>
+                <mat-slider
+                class='parameter-slider'
+                [formControlName]="param.name"
+                min="{{param.min}}"
+                max="{{param.max}}"
+                step="{{param.stepSize}}"
+                thumbLabel="{{param.value}}"
+                color="primary">
+
+                </mat-slider>
+                <textarea matInput hidden></textarea>
+                <span>
+                  {{ param.value }}
+                </span>
+              </mat-form-field>
+            </mat-grid-tile>
+          </mat-grid-list>
         </form>
       </div>
     </div>

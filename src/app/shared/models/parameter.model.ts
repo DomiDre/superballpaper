@@ -7,4 +7,5 @@ export class Parameter {
   std?: number;
   min!: number;
   max!: number;
+  stepSize!: number;
 }
