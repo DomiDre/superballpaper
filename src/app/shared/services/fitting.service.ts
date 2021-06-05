@@ -2,11 +2,12 @@ import { Injectable, } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { XydataLoaderService } from '@shared/services/xydata-loader.service';
+import { Subject } from 'rxjs';
 
 import { FuncModel } from '@shared/models/funcModel.model';
 import { FitStatistics } from '@shared/models/fitstatistics.model';
-import { FitResult } from '@shared/models/fitresult.model';
-import { Parameter } from '@shared/models/parameter.model';
+// import { FitResult } from '@shared/models/fitresult.model';
+// import { Parameter } from '@shared/models/parameter.model';
 
 @Injectable({
   providedIn: 'root'
@@ -15,8 +16,10 @@ export class FittingService {
   // for compatibility with rusfun code, store data in Float64Arrays
   x: Float64Array = new Float64Array([]);
   y: Float64Array = new Float64Array([]);
+  temp_y: Float64Array = new Float64Array([]);
   yData: Float64Array = new Float64Array([]);
   syData: Float64Array = new Float64Array([]);
+
 
   models!: FuncModel[];
   // currently selected model
@@ -44,7 +47,11 @@ export class FittingService {
   fitRunning = false;
   fitT0!: number;
 
+  calculated_points: number = 0;
   isCalculating: boolean = false;
+  // Observable string sources
+  private refreshPlotSubject = new Subject<any>();
+  refreshPlotCalled$ = this.refreshPlotSubject.asObservable();
 
   constructor(
     private formBuilder: FormBuilder,
@@ -63,15 +70,25 @@ export class FittingService {
       new URL('src/app/shared/workers/superball.worker', import.meta.url),
       { type: "module" });
 
-    // define behaviour when worker finishes his task
+    // define behaviour when worker posts a message
     this.fitWorker.onmessage = ({ data }) => {
-      if (data.task === 'fit') {
+      if (data.task === 'fit') { // worker reports about afit
         // this.eval_fit_result(data.result);
-      } else if (data.task === 'model') {
-        this.eval_model_calc(data.result);
-        this.isCalculating = false;
+      } else if (data.task === 'model') { // worker calculated a datapoint
+        this.temp_y[data.result.x] = data.result.y;
+        this.calculated_points += 1;
+        this.y = this.temp_y;
+        this.callRefreshPlot();
+        if (this.calculated_points === this.x.length) {
+          this.isCalculating = false;
+        }
       }
     };
+  }
+
+  callRefreshPlot() {
+    // Service message commands
+    this.refreshPlotSubject.next();
   }
 
   setModels(models: FuncModel[]) {
@@ -80,6 +97,8 @@ export class FittingService {
 
   calc_model(modelName: string, p: Float64Array, x: Float64Array) {
     this.isCalculating = true;
+    this.calculated_points = 0;
+    this.temp_y = new Float64Array(this.x.length).fill(NaN);
     this.fitWorker.postMessage({
       task: 'model',
       modelName,
@@ -88,8 +107,8 @@ export class FittingService {
     });
   }
 
-  eval_model_calc(result: Float64Array) {
-    this.y = result;
+  eval_model_calc(result: any) {
+
   }
 
   modelSelected() {

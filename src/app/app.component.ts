@@ -14,6 +14,7 @@ export class AppComponent {
 
   @ViewChild('xygraph') plotElement!: LogXLogYGraphComponent;
   public numGridCols: number = 2;
+  progressValue = 0;
 
   constructor(
     public fittingService: FittingService,
@@ -27,7 +28,6 @@ export class AppComponent {
             num_true++;
           }
         }
-        console.log(num_true)
         this.numGridCols = 4 - num_true;
       });
     }
@@ -45,6 +45,12 @@ export class AppComponent {
       // set initial data without calculation
       this.fittingService.x = initial_data.x;
       this.fittingService.y = initial_data.y;
+      this.fittingService.refreshPlotCalled$.subscribe(() => {
+        const progress = Math.round((this.fittingService.calculated_points / this.fittingService.x.length) * 100);
+        if (progress % 5 === 0) // reduce update interval to avoid staggering animation
+          this.progressValue = progress;
+        this.plotElement.updateChart();
+      });
     }
 
     ngAfterViewInit() {

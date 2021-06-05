@@ -26,14 +26,22 @@ addEventListener('message', ({ data }) => {
         }
       });
     } else if (data.task === 'model') {
-      const result = module.superball_model(
-        data.modelName,
-        data.p,
-        data.x);
-      postMessage({
-        task: 'model',
-        result
-      });
+      const t0 = performance.now();
+      // web worker calc model sequentially and report every result
+      // allows to report progress of calculation
+      for (let x_val in data.x) {
+        const result = module.superball_model(
+          data.modelName,
+          data.p,
+          new Float64Array([data.x[x_val]]));
+          postMessage({
+            task: 'model',
+            result: {x: x_val, y: result[0]}
+          });
+      }
+      const t1 = performance.now();
+      console.log("Webworker execution for " + data.x.length + " is: " + (t1 - t0));
+
     }
   });
 });

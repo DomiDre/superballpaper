@@ -65,8 +65,9 @@
       </app-logxlogy-graph>
       <mat-progress-bar
         *ngIf="fittingService.isCalculating"
-        mode="indeterminate"
+        mode="determinate"
         color="primary"
+        [value]="progressValue"
         style="z-index: 5000;"
       >
       </mat-progress-bar>
