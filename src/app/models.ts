@@ -138,7 +138,7 @@ export const models: FuncModel[] = [
     parameters: [{
       name: 'I0',
       value: 1,
-      vary: true,
+      vary: false,
       unitName: 'cm⁻¹',
       unitValue: 1,
       min: 0,
@@ -160,7 +160,7 @@ export const models: FuncModel[] = [
       unitName: '%',
       unitValue: 1e-2,
       min: 0,
-      max: 30,
+      max: 20,
       stepSize: 0.1
     }, {
       name: 'p',
@@ -172,9 +172,9 @@ export const models: FuncModel[] = [
       max: 10,
       stepSize: 0.1
     }, {
-      name: 'SLD_p',
-      value: 40,
-      vary: false,
+      name: 'Contrast',
+      value: 1,
+      vary: true,
       unitName: '10⁻⁶ Å⁻²',
       unitValue: 1e-6,
       min: 0,
@@ -182,7 +182,7 @@ export const models: FuncModel[] = [
       stepSize: 1
     }, {
       name: 'SLD_m',
-      value: 10,
+      value: 0,
       vary: false,
       unitName: '10⁻⁶ Å⁻²',
       unitValue: 1e-6,
@@ -191,7 +191,7 @@ export const models: FuncModel[] = [
       stepSize: 1
     }, {
       name: 'Gauss-Legendre',
-      value: 10,
+      value: 20,
       vary: false,
       unitName: '',
       unitValue: 1,
@@ -200,7 +200,7 @@ export const models: FuncModel[] = [
       stepSize: 1
     }, {
       name: 'Gauss-Hermite',
-      value: 10,
+      value: 20,
       vary: false,
       unitName: '',
       unitValue: 1,

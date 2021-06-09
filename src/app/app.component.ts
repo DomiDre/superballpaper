@@ -1,6 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { FittingService } from '@shared/services/fitting.service';
 import { models } from './models';
+import { Parameter } from './shared/models/parameter.model';
 import {BreakpointObserver} from '@angular/cdk/layout';
 import { LogXLogYGraphComponent } from '@shared/components/logxlogygraph/logxlogygraph.component';
 import initial_data from '../assets/initial_plot';
@@ -43,10 +44,10 @@ export class AppComponent {
       this.fittingService.selectedModel = models.find(x => x.name == 'superball') ?? models[0];
       this.fittingService.modelSelected();
       // set initial data without calculation
-      this.fittingService.x = initial_data.x;
-      this.fittingService.y = initial_data.y;
+      this.fittingService.curve1.x = initial_data.x;
+      this.fittingService.curve1.y = initial_data.y;
       this.fittingService.refreshPlotCalled$.subscribe(() => {
-        const progress = Math.round((this.fittingService.calculated_points / this.fittingService.x.length) * 100);
+        const progress = Math.round((this.fittingService.calculated_points / this.fittingService.curve1.x.length) * 100);
         if (progress % 5 === 0) // reduce update interval to avoid staggering animation
           this.progressValue = progress;
         this.plotElement.updateChart();
@@ -55,5 +56,9 @@ export class AppComponent {
 
     ngAfterViewInit() {
       this.plotElement.updateChart();
+    }
+
+    varyFilter(parameter: Parameter) {
+      return parameter.vary;
     }
 }

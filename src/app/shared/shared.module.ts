@@ -4,10 +4,12 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { MaterialModule } from './material.module';
 import { LogXLogYGraphComponent } from './components/logxlogygraph/logxlogygraph.component';
+import { CallbackFilterPipe } from './pipes/callback-filter.pipe';
 
 @NgModule({
   declarations: [
-    LogXLogYGraphComponent
+    LogXLogYGraphComponent,
+    CallbackFilterPipe,
   ],
   imports: [
     CommonModule,
@@ -19,6 +21,7 @@ import { LogXLogYGraphComponent } from './components/logxlogygraph/logxlogygraph
     HttpClientModule,
     ReactiveFormsModule,
     LogXLogYGraphComponent,
+    CallbackFilterPipe
   ]
 })
 export class SharedModule { }

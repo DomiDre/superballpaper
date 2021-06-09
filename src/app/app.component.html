@@ -56,10 +56,8 @@
     <div>
       <h2>Online-Demo</h2>
       <app-logxlogy-graph #xygraph
-      [x]="fittingService.x"
-      [y]="fittingService.y"
-      [yData]="fittingService.yData"
-      [syData]="fittingService.syData"
+      [curve1]="fittingService.curve1"
+      [curve2]="fittingService.curve2"
       xlabel='q / A-1'
       ylabel="I / cm-1">
       </app-logxlogy-graph>
@@ -77,7 +75,7 @@
         <form class='form-parameters' [formGroup]="fittingService.parameterForm"
         floatLabel="always" appearance="none">
           <mat-grid-list [cols]="numGridCols" rowHeight="100px">
-            <mat-grid-tile *ngFor="let param of fittingService.selectedModel.parameters">
+            <mat-grid-tile *ngFor="let param of fittingService.selectedModel.parameters | callbackFilter: varyFilter">
               <mat-form-field class='form-parameters-field'>
                 <mat-label>{{param.unitName != '' ? (param.name + ' / ' + param.unitName) : param.name}}</mat-label>
                 <mat-slider

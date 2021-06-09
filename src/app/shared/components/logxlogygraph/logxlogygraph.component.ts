@@ -1,7 +1,6 @@
 import { Component, Input, ViewChild, ElementRef, SimpleChanges, OnChanges } from '@angular/core';
 import { XYData } from '@shared/models/xydata.model';
-import { XYEData } from '@shared/models/xyedata.model';
-
+import { Curve } from '@shared/models/curve.model';
 import * as d3 from 'd3';
 
 @Component({
@@ -11,16 +10,10 @@ import * as d3 from 'd3';
 })
 export class LogXLogYGraphComponent implements OnChanges {
   @Input()
-  x: Float64Array = new Float64Array();
+  curve1: Curve = { x: new Float64Array([]), y: new Float64Array([])};
 
   @Input()
-  y: Float64Array = new Float64Array();
-
-  @Input()
-  yData: Float64Array = new Float64Array();
-
-  @Input()
-  syData: Float64Array = new Float64Array();
+  curve2: Curve = { x: new Float64Array([]), y: new Float64Array([])};
 
   @Input()
   xlabel: string = '';
@@ -32,7 +25,6 @@ export class LogXLogYGraphComponent implements OnChanges {
   chartContainer!: ElementRef;
 
   xymodel!: XYData[];
-  xydata!: XYEData[];
 
   figure!: d3.Selection<SVGGElement, unknown, null, undefined>;
   chartProps: any;
@@ -52,30 +44,14 @@ export class LogXLogYGraphComponent implements OnChanges {
 
   parseInputToXYData() {
     this.xymodel = [];
-    this.xydata = [];
-    if (this.y.length > 0) {
-      for (let i = 0; i < this.x.length; i++) {
+    if (this.curve1.y.length > 0) {
+      for (let i = 0; i < this.curve1.x.length; i++) {
         this.xymodel.push({
-          x: this.x[i],
-          y: this.y[i]
+          x: this.curve1.x[i],
+          y: this.curve1.y[i]
         });
       }
     }
-
-    if (this.yData.length > 0) {
-      for (let i = 0; i < this.x.length; i++) {
-        const point: XYEData = {
-          x: this.x[i],
-          y: this.yData[i],
-          sy: 0
-        };
-        if (this.syData.length > 0 ) {
-          point.sy = this.syData[i];
-        }
-        this.xydata.push(point);
-      }
-    }
-
   }
 
   buildChart() {
@@ -114,13 +90,13 @@ export class LogXLogYGraphComponent implements OnChanges {
     .text(this.ylabel);
 
     // Set the ranges
-    var minX = d3.min(this.x);
+    var minX = d3.min(this.curve1.x);
     minX ??= 1;
-    var maxX = d3.max(this.x);
+    var maxX = d3.max(this.curve1.x);
     maxX ??= 10;
-    var minY = d3.min(this.y);
+    var minY = d3.min(this.curve1.y);
     minY ??= 1;
-    var maxY = d3.max(this.y);
+    var maxY = d3.max(this.curve1.y);
     maxY ??= 10;
 
     this.chartProps.xscale = d3.scaleLog()
@@ -173,15 +149,10 @@ export class LogXLogYGraphComponent implements OnChanges {
   updateChart() {
     this.parseInputToXYData();
     this.chartProps.xscale
-    .domain(d3.extent(this.x));
+    .domain(d3.extent(this.curve1.x));
 
-    if (this.yData.length > 0) {
-      this.chartProps.yscale
-      .domain(d3.extent(this.yData));
-    } else {
-      this.chartProps.yscale
-      .domain(d3.extent(this.y));
-    }
+    this.chartProps.yscale
+    .domain(d3.extent(this.curve1.y));
 
     this.figure.transition();
 
@@ -216,44 +187,6 @@ export class LogXLogYGraphComponent implements OnChanges {
     .attr("y1", 0)
     .attr("x2", 0)
     .attr("y2", -this.chartProps.height);
-
-    this.figure.selectAll('.dot') // add new dots
-    .data(this.xydata)
-    .enter().append('circle')
-    .attr('class', 'dot')
-    .attr('cx', (d) => this.chartProps.xscale(d.x))
-    .attr('cy', (d) => this.chartProps.yscale(d.y))
-    .attr('r', 3)
-    .attr('fill', 'red');
-
-    if (this.syData.length > 0) {
-      this.figure.selectAll('.line_up') // upper errorbar line
-      .data(this.xydata)
-      .enter().append('line')
-      .style('stroke', 'red')
-      .attr('x1', (d) => this.chartProps.xscale(d.x) - this.chartProps.capsize)
-      .attr('x2', (d) => this.chartProps.xscale(d.x) + this.chartProps.capsize)
-      .attr('y1', (d) => this.chartProps.yscale(d.y + d.sy))
-      .attr('y2', (d) => this.chartProps.yscale(d.y + d.sy));
-
-      this.figure.selectAll('.line_down') // lower errorbar line
-      .data(this.xydata)
-      .enter().append('line')
-      .style('stroke', 'red')
-      .attr('x1', (d) => this.chartProps.xscale(d.x) - this.chartProps.capsize)
-      .attr('x2', (d) => this.chartProps.xscale(d.x) + this.chartProps.capsize)
-      .attr('y1', (d) => this.chartProps.yscale(d.y - d.sy))
-      .attr('y2', (d) => this.chartProps.yscale(d.y - d.sy));
-
-      this.figure.selectAll('.line_vertical') // vertical errorbar line
-      .data(this.xydata)
-      .enter().append('line')
-      .style('stroke', 'red')
-      .attr('x1', (d) => this.chartProps.xscale(d.x))
-      .attr('x2', (d) => this.chartProps.xscale(d.x))
-      .attr('y1', (d) => this.chartProps.yscale(d.y - d.sy))
-      .attr('y2', (d) => this.chartProps.yscale(d.y + d.sy));
-    }
 
     this.figure.append('path')
     .datum(this.xymodel)
