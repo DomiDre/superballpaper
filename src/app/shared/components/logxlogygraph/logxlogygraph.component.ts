@@ -15,7 +15,7 @@ export class LogXLogYGraphComponent implements OnChanges {
   curves: Curve[] = new Array(this.Ncurves);
 
   xymodels: XYData[][] = new Array(this.Ncurves);
-  curveColors = ['black', 'red']
+  curveColors = ['blue', 'red']
 
   @Input()
   xlabel: string = '';
