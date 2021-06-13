@@ -34,6 +34,7 @@ addEventListener('message', ({ data }) => {
           data.modelName,
           data.p,
           new Float64Array([data.x[x_val]]));
+
           postMessage({
             task: 'model',
             result: {x: x_val, y: result[0]}

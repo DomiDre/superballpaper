@@ -1,18 +1,21 @@
 import { Injectable, } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Subject } from 'rxjs';
+import { range, Subject } from 'rxjs';
 
 import { FuncModel } from '@shared/models/funcModel.model';
 import { Curve } from '@shared/models/curve.model';
-import { FitStatistics } from '@shared/models/fitstatistics.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class FittingService {
   // for compatibility with rusfun code, store data in Float64Arrays
-  curve1: Curve = { x: new Float64Array([]), y: new Float64Array([])};
-  curve2: Curve = { x: new Float64Array([]), y: new Float64Array([])};
+  curves: Curve[];
+  Ncurves = 2;
+
+  selectedWorker = 0; // which curve parameters are selected
+  calculated_points: number[];  // how many points of said worker are calculated
+  curveWorkerRunning: boolean[];  // if worker is running currently
 
 
   models!: FuncModel[];
@@ -26,9 +29,6 @@ export class FittingService {
   // selected data file
   selectedXYFile!: Blob;
 
-  // in case a fit was performed, for display of fit statistics
-  fitStatistics!: FitStatistics;
-
   // FormGroup to control the linspace if no data is present
   linspaceForm!: FormGroup;
 
@@ -37,41 +37,50 @@ export class FittingService {
 
   checkboxKey = 'checkboxes';
 
-  fitWorker!: Worker;
-  fitRunning = false;
-  fitT0!: number;
 
-  calculated_points: number = 0;
-  isCalculating: boolean = false;
+  curveWorkers!: Worker[];
+  calculated_points2: number = 0;
+
   // Observable string sources
   private refreshPlotSubject = new Subject<any>();
   refreshPlotCalled$ = this.refreshPlotSubject.asObservable();
 
   constructor(
     private formBuilder: FormBuilder) {
+    this.curves = new Array(this.Ncurves);
+    this.calculated_points = new Array(this.Ncurves);
+    this.curveWorkerRunning = new Array(this.Ncurves);
+    for (let i = 0; i < this.Ncurves; i++) {
+      this.curves[i] = { x: new Float64Array([]), y: new Float64Array([])};
+      this.calculated_points[i] = 0;
+      this.curveWorkerRunning[i] = false;
+    }
+
     if (typeof Worker !== 'undefined') {
-      // initialize a worker from adder.worker.ts
-      this.initWorker();
+      // initialize the workers
+      this.curveWorkers = new Array(this.Ncurves);
+      for (let i = 0; i < this.Ncurves; i++) {
+        this.initWorker(i);
+      }
     } else {
+      /// what if workers are not supported? maybe flag this somehow
       console.log('Web Workers are not supported in this environment');
     }
   }
 
-  initWorker() {
-    this.fitWorker = new Worker(
-      new URL('src/app/shared/workers/superball.worker', import.meta.url),
-      { type: "module" });
+  initWorker(workerNum: number) {
+    this.curveWorkers[workerNum] = new Worker(
+        new URL('src/app/shared/workers/superball.worker', import.meta.url),
+        { type: "module" });
 
     // define behaviour when worker posts a message
-    this.fitWorker.onmessage = ({ data }) => {
-      if (data.task === 'fit') { // worker reports about afit
-        // this.eval_fit_result(data.result);
-      } else if (data.task === 'model') { // worker calculated a datapoint
-        this.curve1.y[data.result.x] = data.result.y;
-        this.calculated_points += 1;
+    this.curveWorkers[workerNum].onmessage = ({ data }) => {
+      if (data.task === 'model') { // worker calculated a datapoint
+        this.curves[workerNum].y[data.result.x] = data.result.y;
+        this.calculated_points[workerNum] += 1;
         this.callRefreshPlot();
-        if (this.calculated_points === this.curve1.x.length) {
-          this.isCalculating = false;
+        if (this.calculated_points[workerNum] === this.curves[workerNum].x.length) {
+          this.curveWorkerRunning[workerNum] = false;
         }
       }
     };
@@ -87,23 +96,22 @@ export class FittingService {
   }
 
   calc_model(modelName: string, p: Float64Array, x: Float64Array) {
-    this.isCalculating = true;
-    this.calculated_points = 0;
-    let y = new Float64Array(this.curve1.x.length).fill(NaN);
-    y[0] = this.curve1.y[0];
-    y[this.curve1.x.length-1] = this.curve1.y[this.curve1.x.length-1];
-    this.curve1.y = y;
+    this.curveWorkerRunning[this.selectedWorker] = true;
+    this.calculated_points[this.selectedWorker] = 0;
+    let selectedCurve = this.curves[this.selectedWorker];
+    /// init new y vector, keep first and last point to guess y-range
+    let y = new Float64Array(this.curves[this.selectedWorker].x.length).fill(NaN);
+    y[0] = selectedCurve.y[0];
+    y[selectedCurve.x.length-1] = selectedCurve.y[selectedCurve.x.length-1];
 
-    this.fitWorker.postMessage({
+    selectedCurve.y = y;
+
+    this.curveWorkers[this.selectedWorker].postMessage({
       task: 'model',
       modelName,
       p,
       x,
     });
-  }
-
-  eval_model_calc(result: any) {
-
   }
 
   modelSelected() {
@@ -134,28 +142,31 @@ export class FittingService {
     // update internal parameters and update the plot
     this.parameterForm.valueChanges
     .subscribe(val => {
-      if (this.isCalculating) {
-        // reset worker
-        this.fitWorker.terminate();
-        this.initWorker();
-      }
-      if (this.selectedModel && this.parameterForm.valid) {
-        for (const param of this.selectedModel.parameters) {
-          let newValue = this.parameterForm.value[param.name];
-          if( param.name.startsWith("Gauss") ){
-            newValue = Math.round(newValue);
-          }
-          param.value = newValue;
-          param.vary = this.parameterForm.value.checkboxes[param.name];
-        }
-        this.setFunction();
-      }
+      this.updateCurve();
     });
+  }
+
+  updateCurve() {
+    if (this.curveWorkerRunning[this.selectedWorker]) {
+      // reset worker
+      this.curveWorkers[this.selectedWorker].terminate();
+      this.initWorker(this.selectedWorker);
+    }
+    if (this.selectedModel && this.parameterForm.valid) {
+      for (const param of this.selectedModel.parameters) {
+        let newValue = this.parameterForm.value[param.name];
+        if( param.name.startsWith("Gauss") ){
+          newValue = Math.round(newValue);
+        }
+        param.value = newValue;
+        param.vary = this.parameterForm.value.checkboxes[param.name];
+      }
+      this.setFunction();
+    }
   }
 
   setFunction() {
     // calls function from wasm and sets result in y
-    // this.calculate_linspace();
     const p = new Float64Array(this.selectedModel.parameters.length);
     for (const idx in this.selectedModel.parameters) {
       if (this.selectedModel.parameters[idx]) {
@@ -163,7 +174,7 @@ export class FittingService {
         p[idx] = param.value * param.unitValue;
       }
     }
-    const x = new Float64Array(this.curve1.x);
+    const x = new Float64Array(this.curves[this.selectedWorker].x);
 
     this.calc_model(this.selectedModel.name, p, x);
   }
@@ -175,7 +186,7 @@ export class FittingService {
     for (let i = 0; i < N; i++) {
       x.push(xMin + i * step);
     }
-    this.curve1.x = new Float64Array(x);
+    this.curves[this.selectedWorker].x = new Float64Array(x);
   }
 
 }

@@ -173,7 +173,7 @@ export const models: FuncModel[] = [
       stepSize: 0.1
     }, {
       name: 'Contrast',
-      value: 1,
+      value: 30,
       vary: true,
       unitName: '10⁻⁶ Å⁻²',
       unitValue: 1e-6,

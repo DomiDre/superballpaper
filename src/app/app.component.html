@@ -56,13 +56,12 @@
     <div>
       <h2>Online-Demo</h2>
       <app-logxlogy-graph #xygraph
-      [curve1]="fittingService.curve1"
-      [curve2]="fittingService.curve2"
+      [curves]="fittingService.curves"
       xlabel='q / A-1'
       ylabel="I / cm-1">
       </app-logxlogy-graph>
+      <!-- *ngIf="fittingService.curveWorkerRunning.some(el => el)" -->
       <mat-progress-bar
-        *ngIf="fittingService.isCalculating"
         mode="determinate"
         color="primary"
         [value]="progressValue"
@@ -71,7 +70,10 @@
       </mat-progress-bar>
       <div class='container-parameters' *ngIf="fittingService.selectedModel
       && fittingService.selectedModel.infoText">
+        <mat-slide-toggle
+        (change)="switchingParameter($event)">
         <b>Superball Parameters</b>
+        </mat-slide-toggle>
         <form class='form-parameters' [formGroup]="fittingService.parameterForm"
         floatLabel="always" appearance="none">
           <mat-grid-list [cols]="numGridCols" rowHeight="100px">
@@ -85,8 +87,7 @@
                 max="{{param.max}}"
                 step="{{param.stepSize}}"
                 thumbLabel="{{param.value}}"
-                color="primary">
-
+                [color]="sliderColor">
                 </mat-slider>
                 <textarea matInput hidden></textarea>
                 <span>

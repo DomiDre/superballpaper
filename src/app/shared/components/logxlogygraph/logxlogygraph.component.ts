@@ -9,11 +9,13 @@ import * as d3 from 'd3';
   styleUrls: ['./logxlogygraph.component.sass']
 })
 export class LogXLogYGraphComponent implements OnChanges {
-  @Input()
-  curve1: Curve = { x: new Float64Array([]), y: new Float64Array([])};
+  Ncurves = 2;
 
   @Input()
-  curve2: Curve = { x: new Float64Array([]), y: new Float64Array([])};
+  curves: Curve[] = new Array(this.Ncurves);
+
+  xymodels: XYData[][] = new Array(this.Ncurves);
+  curveColors = ['black', 'red']
 
   @Input()
   xlabel: string = '';
@@ -24,14 +26,19 @@ export class LogXLogYGraphComponent implements OnChanges {
   @ViewChild('chart', { static: true })
   chartContainer!: ElementRef;
 
-  xymodel!: XYData[];
 
   figure!: d3.Selection<SVGGElement, unknown, null, undefined>;
   chartProps: any;
 
   resizeId!: ReturnType<typeof setTimeout>;
 
-  constructor() { }
+  constructor() {
+    for (let i = 0; i < this.Ncurves; i++) {
+      console.log("INIT")
+      this.curves[i] = {x: new Float64Array(), y: new Float64Array()};
+      this.xymodels[i] = [];
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (this.chartProps) {
@@ -43,16 +50,42 @@ export class LogXLogYGraphComponent implements OnChanges {
   }
 
   parseInputToXYData() {
-    this.xymodel = [];
-    if (this.curve1.y.length > 0) {
-      for (let i = 0; i < this.curve1.x.length; i++) {
-        this.xymodel.push({
-          x: this.curve1.x[i],
-          y: this.curve1.y[i]
-        });
+    /// data is stored as x: [x_i,...], y: [y_i,...],
+    /// but d3 wants [(x_i,y_i),...]
+    for (let i = 0; i < this.Ncurves; i++) {
+      this.xymodels[i] = [];
+      if (this.curves[i].y.length > 0) {
+        for (let j = 0; j < this.curves[i].x.length; j++) {
+          this.xymodels[i].push({
+            x: this.curves[i].x[j],
+            y: this.curves[i].y[j]
+          });
+        }
       }
     }
   }
+
+  mergeTypedArrays(a: Float64Array, b: Float64Array): Float64Array {
+    // Checks for truthy values on both arrays
+    if(!a && !b) throw 'Please specify valid arguments for parameters a and b.';
+
+    // Checks for truthy values or empty arrays on each argument
+    // to avoid the unnecessary construction of a new array and
+    // the type comparison
+    if(!b || b.length === 0) return a;
+    if(!a || a.length === 0) return b;
+
+    // Make sure that both typed arrays are of the same type
+    if(Object.prototype.toString.call(a) !== Object.prototype.toString.call(b))
+        throw 'The types of the two arguments passed for parameters a and b do not match.';
+
+    var c = new Float64Array(a.length + b.length);
+    c.set(a);
+    c.set(b, a.length);
+
+    return c;
+  }
+
 
   buildChart() {
     this.parseInputToXYData();
@@ -90,13 +123,11 @@ export class LogXLogYGraphComponent implements OnChanges {
     .text(this.ylabel);
 
     // Set the ranges
-    var minX = d3.min(this.curve1.x);
-    minX ??= 1;
-    var maxX = d3.max(this.curve1.x);
-    maxX ??= 10;
-    var minY = d3.min(this.curve1.y);
+    var [minX, maxX] = d3.extent(this.mergeTypedArrays(this.curves[0].x, this.curves[1].x));
+    minX ??= 0.01;
+    maxX ??= 0.2;
+    var [minY, maxY] = d3.extent(this.mergeTypedArrays(this.curves[0].y, this.curves[1].y));
     minY ??= 1;
-    var maxY = d3.max(this.curve1.y);
     maxY ??= 10;
 
     this.chartProps.xscale = d3.scaleLog()
@@ -118,12 +149,14 @@ export class LogXLogYGraphComponent implements OnChanges {
     this.chartProps.yAxis = d3.axisLeft(this.chartProps.yscale)
     .ticks(4, d3.format("") as any);
 
-    this.figure.append('path')
-    .datum(this.xymodel)
-    .attr('d', this.chartProps.line)
-    .attr('fill', 'none')
-    .attr('stroke', 'black')
-    .attr('class', 'line');
+    for (let i = 0; i < this.Ncurves; i++) {
+      this.figure.append('path')
+      .datum(this.xymodels[i])
+      .attr('d', this.chartProps.line)
+      .attr('fill', 'none')
+      .attr('stroke', this.curveColors[i])
+      .attr('class', 'line');
+    }
 
     this.figure.append('g')
     .attr('class', 'xAxis')
@@ -149,10 +182,10 @@ export class LogXLogYGraphComponent implements OnChanges {
   updateChart() {
     this.parseInputToXYData();
     this.chartProps.xscale
-    .domain(d3.extent(this.curve1.x));
+    .domain(d3.extent(this.mergeTypedArrays(this.curves[0].x, this.curves[1].x)));
 
     this.chartProps.yscale
-    .domain(d3.extent(this.curve1.y));
+    .domain(d3.extent(this.mergeTypedArrays(this.curves[0].y, this.curves[1].y)));
 
     this.figure.transition();
 
@@ -188,12 +221,14 @@ export class LogXLogYGraphComponent implements OnChanges {
     .attr("x2", 0)
     .attr("y2", -this.chartProps.height);
 
-    this.figure.append('path')
-    .datum(this.xymodel)
-    .attr('d', this.chartProps.line)
-    .attr('fill', 'none')
-    .attr('stroke', 'black')
-    .attr('class', 'line');
+    for (let i = 0; i < this.Ncurves; i++) {
+      this.figure.append('path')
+      .datum(this.xymodels[i])
+      .attr('d', this.chartProps.line)
+      .attr('fill', 'none')
+      .attr('stroke', this.curveColors[i])
+      .attr('class', 'line');
+    }
   }
 
   onResize(event: UIEvent) {
