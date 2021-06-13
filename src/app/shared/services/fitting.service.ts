@@ -16,15 +16,11 @@ export class FittingService {
   selectedWorker = 0; // which curve parameters are selected
   calculated_points: number[];  // how many points of said worker are calculated
   curveWorkerRunning: boolean[];  // if worker is running currently
-
+  parameterValues: Float64Array[];  // stores set parameter values
 
   models!: FuncModel[];
   // currently selected model
   selectedModel!: FuncModel;
-
-  // map which parameters of current model can generally be fitted
-  // extracted from the default values
-  fittableParameters: { [key: string]: boolean } = {};
 
   // selected data file
   selectedXYFile!: Blob;
@@ -34,9 +30,6 @@ export class FittingService {
 
   // FormGroup to control the parameters of a set model
   parameterForm!: FormGroup;
-
-  checkboxKey = 'checkboxes';
-
 
   curveWorkers!: Worker[];
   calculated_points2: number = 0;
@@ -50,10 +43,12 @@ export class FittingService {
     this.curves = new Array(this.Ncurves);
     this.calculated_points = new Array(this.Ncurves);
     this.curveWorkerRunning = new Array(this.Ncurves);
+    this.parameterValues = new Array(this.Ncurves);
     for (let i = 0; i < this.Ncurves; i++) {
       this.curves[i] = { x: new Float64Array([]), y: new Float64Array([])};
       this.calculated_points[i] = 0;
       this.curveWorkerRunning[i] = false;
+      this.parameterValues[i] = new Float64Array([]);
     }
 
     if (typeof Worker !== 'undefined') {
@@ -118,7 +113,6 @@ export class FittingService {
     // when the user selects a model, initalize the FormGroup for the parameters
     // This function does not initiate a first calculation! Call setFunction() for this
     const paramGroup: { [key: string]: any }  = {};
-    const checkboxGroup: { [key: string]: any } = {};
     for (const param of this.selectedModel.parameters) {
       paramGroup[param.name] = [
         param.value,
@@ -128,16 +122,21 @@ export class FittingService {
           Validators.max(param.max),
         ]
       ];
-      checkboxGroup[param.name] = [
-        {value: param.vary, disabled: !param.vary},
-        Validators.required];
-      this.fittableParameters[param.name] = param.vary;
     }
-    paramGroup[this.checkboxKey] = this.formBuilder.group(checkboxGroup);
     this.parameterForm = this.formBuilder.group(
       paramGroup
     );
-
+    // create arrays to buffer parameters of the different curves
+    for (let i = 0; i < this.Ncurves; i++) {
+      this.calculated_points[i] = 0;  // this.curves[i].x.length;
+      this.parameterValues[i] = new Float64Array(this.selectedModel.parameters.length);
+      for (const idx in this.selectedModel.parameters) {
+        if (this.selectedModel.parameters[idx]) {
+          const param = this.selectedModel.parameters[idx];
+          this.parameterValues[i][idx] = param.value;
+        }
+      }
+    }
     // when parameters are changed by the user
     // update internal parameters and update the plot
     this.parameterForm.valueChanges
@@ -153,25 +152,24 @@ export class FittingService {
       this.initWorker(this.selectedWorker);
     }
     if (this.selectedModel && this.parameterForm.valid) {
+      // update parameterss in selectedModel
       for (const param of this.selectedModel.parameters) {
-        let newValue = this.parameterForm.value[param.name];
-        if( param.name.startsWith("Gauss") ){
-          newValue = Math.round(newValue);
-        }
-        param.value = newValue;
-        param.vary = this.parameterForm.value.checkboxes[param.name];
+        param.value = this.parameterForm.value[param.name];
       }
-      this.setFunction();
+      this.setFunction(); // call wasm
     }
   }
 
   setFunction() {
     // calls function from wasm and sets result in y
+
+    // create parameter array from parameter object
     const p = new Float64Array(this.selectedModel.parameters.length);
     for (const idx in this.selectedModel.parameters) {
       if (this.selectedModel.parameters[idx]) {
         const param = this.selectedModel.parameters[idx];
         p[idx] = param.value * param.unitValue;
+        this.parameterValues[this.selectedWorker][idx] = param.value;
       }
     }
     const x = new Float64Array(this.curves[this.selectedWorker].x);
@@ -187,6 +185,16 @@ export class FittingService {
       x.push(xMin + i * step);
     }
     this.curves[this.selectedWorker].x = new Float64Array(x);
+  }
+
+  switchedSelectedWorker() {
+    let newValues: {[key: string]: number} = {};
+    this.selectedModel.parameters.forEach((param, idx) => {
+      const bufferedValue = this.parameterValues[this.selectedWorker][idx];
+      newValues[param.name] = bufferedValue;
+      param.value = bufferedValue;
+    })
+    this.parameterForm.setValue(newValues, {emitEvent: false});
   }
 
 }

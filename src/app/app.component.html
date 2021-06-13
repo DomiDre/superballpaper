@@ -60,8 +60,8 @@
       xlabel='q / A-1'
       ylabel="I / cm-1">
       </app-logxlogy-graph>
-      <!-- *ngIf="fittingService.curveWorkerRunning.some(el => el)" -->
       <mat-progress-bar
+        *ngIf="fittingService.curveWorkerRunning.indexOf(true) != -1"
         mode="determinate"
         color="primary"
         [value]="progressValue"

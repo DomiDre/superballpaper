@@ -34,7 +34,6 @@ export class LogXLogYGraphComponent implements OnChanges {
 
   constructor() {
     for (let i = 0; i < this.Ncurves; i++) {
-      console.log("INIT")
       this.curves[i] = {x: new Float64Array(), y: new Float64Array()};
       this.xymodels[i] = [];
     }

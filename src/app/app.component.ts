@@ -42,17 +42,26 @@ export class AppComponent {
       // this.fittingService.yData = initial_data.y;
       // this.fittingService.syData = initial_data.sy;
       // set models in fittingService to the module function models
-      this.fittingService.linspace(0.01, 0.2, 100);
+      // this.fittingService.linspace(0.01, 0.2, 100);
       this.fittingService.models = models;
       this.fittingService.selectedModel = models.find(x => x.name == 'superball') ?? models[0];
-      this.fittingService.modelSelected();
       // set initial data without calculation
-    for (let i = 0; i < this.fittingService.Ncurves; i++) {
-      this.fittingService.curves[i].x = initial_data[i].x;
-      this.fittingService.curves[i].y = initial_data[i].y;
-    }
+      for (let i = 0; i < this.fittingService.Ncurves; i++) {
+        this.fittingService.curves[i].x = initial_data[i].x;
+        this.fittingService.curves[i].y = initial_data[i].y;
+      }
+      this.fittingService.modelSelected();
       this.fittingService.refreshPlotCalled$.subscribe(() => {
-        let progress = Math.round((this.fittingService.calculated_points[this.fittingService.selectedWorker] / this.fittingService.curves[this.fittingService.selectedWorker].x.length) * 100);
+        let progress = 0;
+        let targetVal = 0;
+        for (let i = 0; i < this.fittingService.Ncurves; i++) {
+          const npts = this.fittingService.calculated_points[i];
+          if (npts > 0) {
+            progress += npts;
+            targetVal += this.fittingService.curves[i].x.length;
+          }
+        }
+        progress = Math.round((progress / targetVal) * 100);
         if (progress % 5 === 0) // reduce update interval to avoid staggering animation
           this.progressValue = progress;
         this.plotElement.updateChart();
@@ -70,5 +79,6 @@ export class AppComponent {
     switchingParameter(event: MatSlideToggleChange) {
       this.fittingService.selectedWorker = event.checked ? 1 : 0;
       this.sliderColor = event.checked ? "warn" : "primary";
+      this.fittingService.switchedSelectedWorker();
     }
 }

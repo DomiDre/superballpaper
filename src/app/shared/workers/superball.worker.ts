@@ -26,7 +26,6 @@ addEventListener('message', ({ data }) => {
         }
       });
     } else if (data.task === 'model') {
-      const t0 = performance.now();
       // web worker calc model sequentially and report every result
       // allows to report progress of calculation
       for (let x_val in data.x) {
@@ -40,9 +39,6 @@ addEventListener('message', ({ data }) => {
             result: {x: x_val, y: result[0]}
           });
       }
-      const t1 = performance.now();
-      console.log("Webworker execution for " + data.x.length + " is: " + (t1 - t0));
-
     }
   });
 });
